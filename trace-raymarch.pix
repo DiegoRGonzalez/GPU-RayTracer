@@ -1,0 +1,265 @@
+#version 410 // -*- c++ -*-
+#include <g3dmath.glsl>
+#include <Texture/Texture.glsl>
+
+// Input arguments from the C++ program
+uniform mat4x3         cameraToWorldMatrix;
+
+uniform TextureCube    environmentMap;
+
+uniform float          tanHalfFieldOfViewY;
+uniform float          projectionMatrix22, projectionMatrix23;
+
+// Output to the App::m_framebuffer
+out Color3 pixelColor;
+
+
+struct sphere{
+
+    Point3 C;
+    float r;
+    Radiance3 color;
+
+};
+
+struct plane{
+    Point3 C;
+    Vector3 n;
+    Radiance3 color;
+};
+
+struct taurus{
+    Point3 C;
+    float r;
+    float R;
+    Radiance3 color;
+
+};
+
+struct surfel{
+    Point3 position;
+    Radiance3 color;
+    Vector3 normal;
+
+};
+
+
+struct cube{
+    Point3 C;
+    Vector3 b;
+    Radiance3 color;
+
+
+};
+
+struct cylinder{
+    Point3 C;
+    float r;
+    float e;
+    Radiance3 color;
+
+};
+
+float opSub(float subtraction, float main){
+    return max(main, -subtraction);
+}
+
+
+float eDistance(cylinder c, Point3 X) {
+    Vector2 d = abs(Vector2(length(X.xz - c.C.xz), X.y - c.C.y)) - Vector2(c.r, c.e);
+    return min(maxComponent(d), 0) + length(max(d, Vector2(0, 0)));
+}
+      
+
+float eDistance(cube c, Point3 X) {
+    Vector3 d = abs(X - c.C) - c.b;
+    return min(maxComponent(d), 0) + length(max(d, Vector3(0, 0, 0)));
+}
+
+float eDistance(cube c, float r, Point3 X) {
+  return length(max(abs(X - c.C) - c.b, Vector3(0, 0, 0))) - r;
+}
+      
+      
+
+float eDistance(sphere s, Point3 X){
+    return length(X - s.C) - s.r;
+}
+
+float eDistance(plane p, Point3 X){
+     return dot(X - p.C, p.n);
+}
+
+
+float eDistance(taurus t, Point3 X) {
+    return length(vec2(length(X.xz - t.C.xz) - t.r, X.y - t.C.y)) - t.R;
+}
+
+float sceneDistance(Point3 X, inout Radiance3 color) {
+
+    sphere sphere1 = sphere(Point3(0,50,0), 10, Radiance3(1,1,0));
+    sphere sphere2 = sphere(Point3(0,100,0), 25, Radiance3(0,1,0));
+    cylinder cylinder1 = cylinder(Point3(0,0,0), 6, 100, Radiance3(0.5,0.5,0.5));
+    taurus taurus1 = taurus(Point3(0,50,0),  7, 2, Radiance3(1,1,1));
+    cube   cube1    = cube(Point3(0,10,0), Vector3(10,10,10), Radiance3(0,0,1));
+
+
+    
+    float d1 = eDistance(sphere1, X);
+    float d2 = max(d1, eDistance(taurus1, X));
+    float d3 = eDistance(sphere2, X);
+    float d4 = eDistance(cylinder1, X);
+    float d5 = eDistance(cube1, 5,  X);
+    int circlePoints = 10;
+    for(int i = 0; i < circlePoints; ++i ){
+        float theta = (2*pi/circlePoints) * i;
+        float x = 9*cos(theta);
+        float z = 9*sin(theta);
+        sphere sphere1 = sphere(Point3(x, 50, z), 3, Radiance3(1,1,1));
+        d2 = opSub(eDistance(sphere1, X), d2);
+    
+    }
+
+    float minDistance = inf;
+    Radiance3 minColor;
+    const int numObjects = 4;
+    float distance[numObjects] = float[](d3, d2, d4, d5);
+    Radiance3 colors[numObjects] = Radiance3[](sphere2.color, Radiance3(0.1,0.1,0.1), cylinder1.color, cube1.color);
+    for(int i = 0; i < numObjects; ++i){
+        if(distance[i] <= minDistance && distance[i] > 0){
+            minDistance = distance[i];
+            minColor = colors[i];
+        }
+    
+    }
+    
+    
+    color = minColor;
+    return minDistance;
+}
+
+float sceneDistance(Point3 X){
+    Radiance3 ignoreColor = Radiance3(0,0,0);
+    return sceneDistance(X, ignoreColor);
+}
+
+
+
+float rayPlaneIntersect(Point3 P, Vector3 w, Point3 C, Vector3 n) {
+    const float eps           = 0.005;
+   // Nearly parallel?
+    float denom = dot(n, w);
+    if (abs(denom) <= eps) { return inf; }
+    if(denom > 0) {return inf; }
+    float t = dot(C - P, n) / denom;
+    return (t >= 0) ? t : inf;
+}
+
+
+
+bool traceRay(Point3 P, Vector3 w, inout Radiance3 color, inout surfel s, float closeEnough) {
+    const int   maxIterations = 200;
+    const float eps           = 0.005;
+    const float maxDistance   = 1e5;
+    float curMaxDistance = maxDistance;
+    float intersectDist1 = inf;
+    float intersectDist2 = inf;
+
+    plane ground = plane(Point3(0,0,0), Vector3(0,1,0), Radiance3(1,0.5,0.5));
+    float groundDist = rayPlaneIntersect(P, w, ground.C, ground.n);
+    if(groundDist < curMaxDistance){
+        curMaxDistance = groundDist;
+        s.position = P + w * groundDist;
+        s.color = ground.color;
+        s.normal = ground.n;
+    
+    }
+
+    float t = 0;
+    color = Radiance3(1,0,0);
+    for (int i = 0; (i < maxIterations) && (t < curMaxDistance); ++i) {
+        float dt = sceneDistance(P + w * t, color);
+        t += max(dt, closeEnough);
+        if (dt < 2.0*closeEnough) {
+            curMaxDistance = t;
+            s.position = P + w * t;
+            Point3 Q = s.position - w*2.0*closeEnough;
+            s.normal = normalize(Vector3(
+                sceneDistance(Q + Vector3(eps, 0, 0)), 
+                sceneDistance(Q + Vector3(0, eps, 0)), 
+                sceneDistance(Q + Vector3(0, 0, eps))) - Vector3(sceneDistance(Q)));
+            s.color = color;
+
+        }
+    }
+
+    if(curMaxDistance < maxDistance){
+        return true; 
+    }
+
+    color =  sampleTexture(environmentMap, w).rgb;
+    return false;
+
+}
+
+Radiance3 shade(surfel s, Vector3 eyeDirection, float closeEnough){
+
+    Vector3 w_i = normalize(Vector3(-1,0.5,0.5));
+    float B_i = 1.5;
+
+
+    // Scale ambient color by ambient visibility and material
+    Radiance3 ambientColor = Radiance3(0.5,0.5,0.5);
+    Radiance3 pixelColor = ambientColor * (s.color);
+    Radiance3 ignoreColor;
+    surfel ignoreSurfel;
+    
+        if (!traceRay(s.position + (normalize(s.normal) * (10.0*closeEnough)), w_i, ignoreColor, ignoreSurfel, closeEnough )) {
+            pixelColor += ( B_i * (s.color/pi) * dot(s.normal, -eyeDirection));
+            
+        }
+    //pixelColor = s.normal;
+    return pixelColor;
+}
+
+float clamp(float x, float low, float high){
+    return min(max(x,low), high);
+}
+
+
+
+void main() {
+    // Generate an eye ray in camera space, and then transform to world space
+
+    // Primary ray origin    
+    Point3 P  = cameraToWorldMatrix[3];
+
+    // Primary ray direction
+    Vector3 w = Matrix3(cameraToWorldMatrix) * 
+        normalize(Vector3((gl_FragCoord.xy - g3d_FragCoordExtent / 2.0) * Vector2(1, -1),
+                          g3d_FragCoordExtent.y / ( -2.0 * tanHalfFieldOfViewY)));
+
+    float maxDist = inf;       
+
+    //////////////////////////////////////
+
+    // Render the scene here
+    surfel surfel;
+    const float closeEnough   = 8e-3;
+    if(traceRay(P, w, pixelColor, surfel, closeEnough)){
+        pixelColor = shade(surfel, w, closeEnough);
+    }
+
+    //if(analyticIntersect())
+    
+    
+    //////////////////////////////////////
+     
+    // Camera space z value
+    float csZ = maxDist / w.z;
+    
+    // Pack into standard OpenGL depth buffer format to make the result compatible
+    // with rasterization and post-processing.
+    gl_FragDepth = (maxDist == inf) ? 1.0 : ((projectionMatrix22 * csZ + projectionMatrix23) / -csZ);
+}
+
