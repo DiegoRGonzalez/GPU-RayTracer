@@ -1,0 +1,98 @@
+﻿                  <meta charset="utf-8">
+                 **Development Journal**
+            Diego Gonzalez, drg4@williams.edu
+
+
+2016-11-6: Making my Tardis
+======================================================
+Today I went through my plan to subtract and add cubes from my Tardis.
+
+I made two functions, addFourSides and subFourSides, which allowed me to work on all sides at once. This proccess was pretty easy and I got the following result fairly quickly. Planning really helped speed this proccess along.
+
+![](tardis.png)
+
+
+2016-11-5: Planning my Tardis
+=======================================================
+I decided I wanted to make a Tardis for my custom scene. I started by planning what primitives I would need. 
+
+![](tardisPlan.png)
+
+Then I put the cubes in their respective positions
+
+![current Tardis](tardisTemp.png)
+
+
+2016-11-4: Fixing the shade issue
+=============================================================
+
+I figured out my shading bug. When I bumped my point to check to see if it was in shadow, I was using the light vector instead of the sufel's normal to bump it. I must have changed that trying to fix the earlier bug. Well now my shadows seem to work.
+
+![](goodShadow.png)
+
+Now I plan to start making my object. I'll focus on the glossyness and the material later.
+
+After some messing around, I got this structure
+
+![](stopSign.png)
+
+Which was some interesting cutouts
+
+![](cutOut.png)
+
+I'll return later with a plan to make something better.
+
+2016-11-3: Fixing the ground and shading issues
+=============================================================
+First I focused on getting rid of this bug
+
+![](horizonDip.png)
+
+Morgan told me that it was because my program was not able to reach the ground near the horizon with my max number of steps. He recommended making the ground an analytical intersection.
+This was suprisingly tougher than I expected. For some reason I had trouble getting the algorithm in the Ray March chapter of the graphics codex to work well. I eventually found another algorithm in the graphics codex that gave me the result I wanted.
+
+![](analyticGround.png)
+
+Now I focused on my shading bug. Here I made everything not in shadow black to see what actually was in shadow.
+
+![](shadowDebug.png)
+
+I asked Morgan for help again and we started to look at my normals. They seemed to be correct from the code but when I hard coded a single sphere and made it display its normals by color, I got this 
+
+![](wrongNormal.png)
+
+After looking through anything, we found that I was using the point of the camera instead of the surfel to calculate the normals... oops
+
+![](correctNormal.png)
+
+I still have my shading issue, but atleast I fixed one bug issue. Now my shading looks a bit more like spaghetti, which is nice, I guess.
+
+![](stillProblem.png)
+
+
+2016-11-2: Getting an image and changing structure
+========================================================
+After fixing some syntax errors, I was able to get an image. The shadow code seems a little wrong, but atleast I'm getting an image.
+
+![firstImage](firstImage.png)
+
+The horizon seems to dip as well, I will look into that later.
+
+Now I worked on changing the structure of my scene distance function to make it easier to have multiple objects.
+
+![](multipleObjects.png)
+
+
+
+2016-11-1: Starting the project
+====================================================
+
+To start the project, I used the javascript ray marcher as a resource. I looked at the structure and changed my program to mimic it. For example, I made a surfel class and passed that around to store the positions, color, and normal of a point.
+
+It didn't quite compile by the end of this day, but that task will be for another time.
+
+
+
+
+<!-- Markdeep: -->
+<style class="fallback">body{visibility:hidden;white-space:pre;font-family:monospace;}</style><script src="https://casual-effects.com/markdeep/latest/markdeep.min.js"></script><script>window.alreadyProcessedMarkdeep||(document.body.style.visibility="visible")</script>

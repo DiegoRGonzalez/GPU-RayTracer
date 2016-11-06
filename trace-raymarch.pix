@@ -64,6 +64,9 @@ float opSub(float subtraction, float main){
     return max(main, -subtraction);
 }
 
+float opAdd(float addition, float main){
+    return min(addition, main);
+}
 
 float eDistance(cylinder c, Point3 X) {
     Vector2 d = abs(Vector2(length(X.xz - c.C.xz), X.y - c.C.y)) - Vector2(c.r, c.e);
@@ -95,36 +98,163 @@ float eDistance(taurus t, Point3 X) {
     return length(vec2(length(X.xz - t.C.xz) - t.r, X.y - t.C.y)) - t.R;
 }
 
+//float cutCircle(inout float distance, Point3 p, float circleR, float sphereR float circlePoints){
+//
+//    for(int i = 0; i < circlePoints; ++i ){
+//        float theta = (2*pi/circlePoints) * i;
+//        float x = p.x + circleR*cos(theta);
+//        float z = p.z + circleR*sin(theta);
+//        sphere sphere1 = sphere(Point3(x, p.y, z), sphereR, Radiance3(1,1,1));
+//        distance = opSub(eDistance(sphere1, X), d2);
+//    
+//    }
+//
+//    return distance;
+//}
+
+
+//float cutPanel(Point3())
+
+float subFourSides(float dBox, cube panel, Point3 X){
+    dBox = opSub(eDistance(panel, X), dBox);
+    panel.C.z -= 40;
+    dBox = opSub(eDistance(panel, X), dBox);
+
+    //Swap dimensions
+    float z = panel.C.x;
+    float x = panel.C.z;
+    panel.C.z = z;
+    panel.C.x = x;
+    z = panel.b.x;
+    x = panel.b.z;
+    panel.b.x = x;
+    panel.b.z = z;
+
+    dBox = opSub(eDistance(panel, X), dBox);
+    panel.C.x += 40;
+    return opSub(eDistance(panel, X), dBox);
+}
+
+float addFourSides(float dBox, cube panel, Point3 X, bool bump){
+    dBox = opAdd(eDistance(panel, X), dBox);
+    if(bump)
+    panel.C.z +=2;
+
+    panel.C.z -= 40;
+    dBox = opAdd(eDistance(panel, X), dBox);
+
+    //Swap dimensions
+    float z = panel.C.x;
+    float x = panel.C.z;
+    panel.C.z = z;
+    panel.C.x = x;
+    z = panel.b.x;
+    x = panel.b.z;
+    panel.b.x = x;
+    panel.b.z = z;
+
+    dBox = opAdd(eDistance(panel, X), dBox);
+    
+    if(bump)
+    panel.C.x -= 2;
+    panel.C.x += 40;
+    return opAdd(eDistance(panel, X), dBox);
+}
+
+float addFourSides(float dBox, cube panel, Point3 X){
+    return addFourSides(dBox, panel, X, false);
+}
+float makeTardis(float dTardis, inout float dWindow, Point3 X){
+     //Subtract first panel
+    cube panel = cube(Point3(-10, 75.5, 20), Vector3(8, 9, 0.5), Radiance3(1,1,1) );
+    dTardis = subFourSides(dTardis, panel, X);
+
+    
+    //Make white windows on top
+    cube w1 = panel;
+    w1.C.z -= 1;
+    dWindow = eDistance(w1, X);
+    dWindow = addFourSides(dWindow, w1, X, true);
+    w1.C.x += 20;
+    dWindow = addFourSides(dWindow, w1, X, true);
+
+    
+
+    //Make first window frame
+    Point3 frameCenter = panel.C;
+    frameCenter.x -= 2.75;
+    frameCenter.z -= 0;//;0.25;
+    cube frame1 = cube(frameCenter, Vector3(0.5, 9, 0.1), Radiance3(0,0,0));
+    dTardis = addFourSides(dTardis, frame1, X);
+    frame1.C.x += 5.5;
+    dTardis = addFourSides(dTardis, frame1, X);
+
+    cube frame2 = panel;
+    frame2.C.z -= 0;
+    frame2.b = Vector3(panel.b.x, 0.5, 0.1);
+    dTardis = addFourSides(dTardis, frame2, X);
+
+    //Make other window panel
+    panel.C.x += 20;
+    dTardis = subFourSides(dTardis, panel, X);
+
+    //make second window frame
+    frame1.C.x += 20;
+    dTardis = addFourSides(dTardis, frame1, X);
+    frame1.C.x -= 5.5;
+    dTardis = addFourSides(dTardis, frame1, X);
+    frame2.C.x += 20;
+    dTardis = addFourSides(dTardis, frame2, X);
+
+
+    //make remaining panels
+    panel.C.y -= 20;
+    dTardis = subFourSides(dTardis, panel, X);
+    panel.C.y -= 20;
+    dTardis = subFourSides(dTardis, panel, X);
+    panel.C.y -= 20;
+    dTardis = subFourSides(dTardis, panel, X);
+    panel.C.x -= 20;
+    dTardis = subFourSides(dTardis, panel, X);
+    panel.C.y += 20;
+    dTardis = subFourSides(dTardis, panel, X);
+    panel.C.y += 20;
+    dTardis = subFourSides(dTardis, panel, X);
+
+
+    return dTardis;
+
+}
+
 float sceneDistance(Point3 X, inout Radiance3 color) {
+    Radiance3 tardisBlue = Radiance3(0.06, 0.14, 0.65);
+    cube cube1 = cube(Point3(0,0,0), Vector3(25, 3, 25), tardisBlue);
+    cube cube2 = cube(Point3(0,3,0), Vector3(20, 85, 20), tardisBlue);
+    cube cube3 = cube(Point3(0,88,0), Vector3(19, 5, 19), tardisBlue);
+    cube cube4 = cube(Point3(0,93,0), Vector3(15, 3, 15), tardisBlue);
+    cylinder light = cylinder(Point3(0,96,0), 2, 3, Radiance3(1,1,1));
+    sphere lightS = sphere(Point3(0,99,0), 2, Radiance3(1,1,1));
 
-    sphere sphere1 = sphere(Point3(0,50,0), 10, Radiance3(1,1,0));
-    sphere sphere2 = sphere(Point3(0,100,0), 25, Radiance3(0,1,0));
-    cylinder cylinder1 = cylinder(Point3(0,0,0), 6, 100, Radiance3(0.5,0.5,0.5));
-    taurus taurus1 = taurus(Point3(0,50,0),  7, 2, Radiance3(1,1,1));
-    cube   cube1    = cube(Point3(0,10,0), Vector3(10,10,10), Radiance3(0,0,1));
+    float d1 = eDistance(cube1, X);
+    float d2 = eDistance(cube2, X);
+    float d3 = eDistance(cube3, X);
+    float d4 = eDistance(cube4, X);
+    float d5 = eDistance(light, X);
+    d5 = opAdd(eDistance(lightS, X), d5);
+    float dWindow;
+    Radiance3 windowColor = Radiance3(1,1,1);
+    d2 = makeTardis(d2, dWindow, X);
 
 
-    
-    float d1 = eDistance(sphere1, X);
-    float d2 = max(d1, eDistance(taurus1, X));
-    float d3 = eDistance(sphere2, X);
-    float d4 = eDistance(cylinder1, X);
-    float d5 = eDistance(cube1, 5,  X);
-    int circlePoints = 10;
-    for(int i = 0; i < circlePoints; ++i ){
-        float theta = (2*pi/circlePoints) * i;
-        float x = 9*cos(theta);
-        float z = 9*sin(theta);
-        sphere sphere1 = sphere(Point3(x, 50, z), 3, Radiance3(1,1,1));
-        d2 = opSub(eDistance(sphere1, X), d2);
-    
-    }
 
     float minDistance = inf;
     Radiance3 minColor;
-    const int numObjects = 4;
-    float distance[numObjects] = float[](d3, d2, d4, d5);
-    Radiance3 colors[numObjects] = Radiance3[](sphere2.color, Radiance3(0.1,0.1,0.1), cylinder1.color, cube1.color);
+    const int numObjects = 6;
+    float distance[numObjects] = float[]( d1, d2, d3, d4, d5,dWindow);
+
+
+
+    Radiance3 colors[numObjects] = Radiance3[](cube1.color, cube2.color, cube3.color, cube4.color, light.color, windowColor);
     for(int i = 0; i < numObjects; ++i){
         if(distance[i] <= minDistance && distance[i] > 0){
             minDistance = distance[i];
@@ -136,6 +266,7 @@ float sceneDistance(Point3 X, inout Radiance3 color) {
     
     color = minColor;
     return minDistance;
+
 }
 
 float sceneDistance(Point3 X){
@@ -158,7 +289,7 @@ float rayPlaneIntersect(Point3 P, Vector3 w, Point3 C, Vector3 n) {
 
 
 bool traceRay(Point3 P, Vector3 w, inout Radiance3 color, inout surfel s, float closeEnough) {
-    const int   maxIterations = 200;
+    const int   maxIterations = 100;
     const float eps           = 0.005;
     const float maxDistance   = 1e5;
     float curMaxDistance = maxDistance;
@@ -202,9 +333,13 @@ bool traceRay(Point3 P, Vector3 w, inout Radiance3 color, inout surfel s, float 
 
 }
 
+Radiance3 ro(Vector3 eye, surfel s){
+    return s.color/pi;
+}
+
 Radiance3 shade(surfel s, Vector3 eyeDirection, float closeEnough){
 
-    Vector3 w_i = normalize(Vector3(-1,0.5,0.5));
+    Vector3 w_i = normalize(Vector3(0,2,-0.5));
     float B_i = 1.5;
 
 
@@ -215,7 +350,7 @@ Radiance3 shade(surfel s, Vector3 eyeDirection, float closeEnough){
     surfel ignoreSurfel;
     
         if (!traceRay(s.position + (normalize(s.normal) * (10.0*closeEnough)), w_i, ignoreColor, ignoreSurfel, closeEnough )) {
-            pixelColor += ( B_i * (s.color/pi) * dot(s.normal, -eyeDirection));
+            pixelColor += ( B_i * ro(eyeDirection, s) * dot(s.normal, -eyeDirection));
             
         }
     //pixelColor = s.normal;
