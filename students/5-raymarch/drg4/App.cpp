@@ -119,8 +119,8 @@ int main(int argc, const char* argv[]) {
     GApp::Settings settings(argc, argv);
 
     settings.window.caption = "Simple GPU Ray Tracer";
-    settings.window.width   = 780;
-    settings.window.height  = 500;
+    settings.window.width   = 848;
+    settings.window.height  = 480;
     settings.hdrFramebuffer.depthGuardBandThickness = Vector2int16(0, 0);
     settings.hdrFramebuffer.colorGuardBandThickness = Vector2int16(0, 0);
 

@@ -1,6 +1,8 @@
 #version 410 // -*- c++ -*-
 #include <g3dmath.glsl>
+#include <noise.glsl>
 #include <Texture/Texture.glsl>
+#include <Sphere.glsl>
 
 // Input arguments from the C++ program
 uniform mat4x3         cameraToWorldMatrix;
@@ -59,6 +61,9 @@ struct cylinder{
     Radiance3 color;
 
 };
+
+
+
 
 float opSub(float subtraction, float main){
     return max(main, -subtraction);
@@ -234,7 +239,7 @@ float sceneDistance(Point3 X, inout Radiance3 color) {
     cube cube4 = cube(Point3(0,93,0), Vector3(15, 3, 15), tardisBlue);
     cylinder light = cylinder(Point3(0,96,0), 2, 3, Radiance3(1,1,1));
     sphere lightS = sphere(Point3(0,99,0), 2, Radiance3(1,1,1));
-
+    
     float d1 = eDistance(cube1, X);
     float d2 = eDistance(cube2, X);
     float d3 = eDistance(cube3, X);
@@ -244,16 +249,16 @@ float sceneDistance(Point3 X, inout Radiance3 color) {
     float dWindow;
     Radiance3 windowColor = Radiance3(1,1,1);
     d2 = makeTardis(d2, dWindow, X);
-
-
-
+    
+    
+    
     float minDistance = inf;
     Radiance3 minColor;
     const int numObjects = 6;
     float distance[numObjects] = float[]( d1, d2, d3, d4, d5,dWindow);
-
-
-
+    
+    
+    
     Radiance3 colors[numObjects] = Radiance3[](cube1.color, cube2.color, cube3.color, cube4.color, light.color, windowColor);
     for(int i = 0; i < numObjects; ++i){
         if(distance[i] <= minDistance && distance[i] > 0){
@@ -288,7 +293,7 @@ float rayPlaneIntersect(Point3 P, Vector3 w, Point3 C, Vector3 n) {
 
 
 
-bool traceRay(Point3 P, Vector3 w, inout Radiance3 color, inout surfel s, float closeEnough) {
+bool traceRay(Point3 P, Vector3 w, inout Radiance3 color, inout surfel s, float closeEnough, bool march) {
     const int   maxIterations = 100;
     const float eps           = 0.005;
     const float maxDistance   = 1e5;
@@ -296,7 +301,7 @@ bool traceRay(Point3 P, Vector3 w, inout Radiance3 color, inout surfel s, float 
     float intersectDist1 = inf;
     float intersectDist2 = inf;
 
-    plane ground = plane(Point3(0,0,0), Vector3(0,1,0), Radiance3(1,0.5,0.5));
+    plane ground = plane(Point3(0,0,0), Vector3(0,1,0), Radiance3(0.5,0.5,0.5));
     float groundDist = rayPlaneIntersect(P, w, ground.C, ground.n);
     if(groundDist < curMaxDistance){
         curMaxDistance = groundDist;
@@ -307,8 +312,8 @@ bool traceRay(Point3 P, Vector3 w, inout Radiance3 color, inout surfel s, float 
     }
 
     float t = 0;
-    color = Radiance3(1,0,0);
-    for (int i = 0; (i < maxIterations) && (t < curMaxDistance); ++i) {
+    //color = Radiance3(1,0,0);
+    for (int i = 0; ((i < maxIterations) && (t < curMaxDistance)) && march; ++i) {
         float dt = sceneDistance(P + w * t, color);
         t += max(dt, closeEnough);
         if (dt < 2.0*closeEnough) {
@@ -320,48 +325,79 @@ bool traceRay(Point3 P, Vector3 w, inout Radiance3 color, inout surfel s, float 
                 sceneDistance(Q + Vector3(0, eps, 0)), 
                 sceneDistance(Q + Vector3(0, 0, eps))) - Vector3(sceneDistance(Q)));
             s.color = color;
-
+    
         }
     }
-
+    
     if(curMaxDistance < maxDistance){
         return true; 
     }
+
 
     color =  sampleTexture(environmentMap, w).rgb;
     return false;
 
 }
 
+bool traceRay(Point3 P, Vector3 w, inout Radiance3 color, inout surfel s, float closeEnough){
+    return traceRay(P, w, color, s, closeEnough, true);
+}
+
+
 Radiance3 ro(Vector3 eye, surfel s){
     return s.color/pi;
 }
 
-Radiance3 shade(surfel s, Vector3 eyeDirection, float closeEnough){
+Radiance3 shade(surfel s, Vector3 eyeDirection, float closeEnough, bool march){
 
-    Vector3 w_i = normalize(Vector3(0,2,-0.5));
+    Vector3 w_i = normalize(Vector3(0,0.5,0.5));
     float B_i = 1.5;
 
 
     // Scale ambient color by ambient visibility and material
     Radiance3 ambientColor = Radiance3(0.5,0.5,0.5);
-    Radiance3 pixelColor = ambientColor * (s.color);
+    Radiance3 pixelColor = (s.color) * ambientColor;
     Radiance3 ignoreColor;
     surfel ignoreSurfel;
     
-        if (!traceRay(s.position + (normalize(s.normal) * (10.0*closeEnough)), w_i, ignoreColor, ignoreSurfel, closeEnough )) {
-            pixelColor += ( B_i * ro(eyeDirection, s) * dot(s.normal, -eyeDirection));
-            
+        if (!traceRay(s.position + (normalize(s.normal) * (10.0*closeEnough)), w_i, ignoreColor, ignoreSurfel, closeEnough, march)) {
+            pixelColor += ( B_i * ro(eyeDirection, s) * max(0, dot(s.normal, -eyeDirection)));     
         }
-    //pixelColor = s.normal;
+    pixelColor += (s.normal*0.05);
     return pixelColor;
+}
+
+Radiance3 shade(surfel s, Vector3 eyeDirection, float closeEnough){
+    return shade(s, eyeDirection, closeEnough, true);
 }
 
 float clamp(float x, float low, float high){
     return min(max(x,low), high);
 }
 
+void fadeInTardis(inout Radiance3 pixelColor, Point3 pos, Radiance3 color1){
 
+    float time = mod(g3d_SceneTime, 14.0);
+    float t1;
+    float t2;
+    float t3;
+    if(time < 4){
+        t3 = (time / 3);
+        t1 = lerp(1.0, 0.7, t3);
+    }
+    if(time < 11){
+        t2 = clamp(((time - 3)  / 7.0) + noise(Vector3(pos.x/7, g3d_SceneTime, pos.z/7), 2), 0, 1);
+        t2 = 1.0 - t2;
+    }else{
+        t2 = 0;
+    }
+    if(time < 4){ 
+        pixelColor = lerp(lerp(color1, pixelColor, t1), lerp(color1, pixelColor, t2), t3);
+    }else{
+        pixelColor = lerp(color1, pixelColor, t2);
+    }
+    
+}
 
 void main() {
     // Generate an eye ray in camera space, and then transform to world space
@@ -377,14 +413,47 @@ void main() {
     float maxDist = inf;       
 
     //////////////////////////////////////
-
     // Render the scene here
     surfel surfel;
     const float closeEnough   = 8e-3;
     if(traceRay(P, w, pixelColor, surfel, closeEnough)){
-        pixelColor = shade(surfel, w, closeEnough);
+        Radiance3 color1 = shade(surfel, w, closeEnough);
+        Point3 pos = surfel.position;
+        if(traceRay(P, w, pixelColor, surfel, closeEnough, false)){
+            pixelColor = shade(surfel, w, closeEnough, false);
+        }
+        
+        
+        
+        fadeInTardis(pixelColor, pos, color1);
     }
 
+
+    //Material ignore;
+    //Surfel s;
+    //Sphere sp = Sphere(Point3(0.5, 0.5, 0), 0.5, ignore);
+    //float dist = inf;
+    //if(intersect(sp, P, w, dist, s)){
+    //    pixelColor = (s.normal+1)/2;//s.position;
+    //}else{
+    //    pixelColor = Radiance3(0);
+    //}
+
+
+    //pixelColor = Radiance3(0,0,0);
+    //if(mod(gl_FragCoord.x, 16) < 8 && mod(gl_FragCoord.y, 16) > 8){
+    //    pixelColor = Radiance3(1,1,1);
+    //}
+    // if(mod(gl_FragCoord.x + 8, 16) < 8 && mod(gl_FragCoord.y + 8, 16) > 8){
+    //    pixelColor = Radiance3(1,1,1);
+    //}
+
+    //float nl = noise(Vector2(gl_FragCoord.x/90, gl_FragCoord.y/90), 3);
+    //
+    //pixelColor = Radiance3(nl, nl, 1);
+
+
+    //pixelColor = (w + 1)/2;
     //if(analyticIntersect())
     
     
