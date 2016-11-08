@@ -426,6 +426,7 @@ void main() {
         
         
         fadeInTardis(pixelColor, pos, color1);
+        //pixelColor = color1;
     }
 
 

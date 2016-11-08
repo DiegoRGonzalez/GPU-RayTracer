@@ -1,8 +1,34 @@
 ﻿                  <meta charset="utf-8">
                   **Report: Ray Marching**
             Diego Gonzalez, drg4@williams.edu
+
 Scene Construction
 ====================================================
+First I planned out what initial primitives I would need. These were mostly boxes and I drew that out on a whiteboard in my room.
+
+![](tardisPlan.png)
+
+
+Once I did that I simply made those boxes at those coordinates. I had to adjust the height of my main tardis a little, but it was mostly alright.
+
+![](tardisSimple.png)
+
+Once I had this, I started working on the panels on the edges. I made two functions, addFourSides and subFourSides that would Add/subtract my primitives from my tardis on all four sides. This allowed me to work only on one side. 
+
+I made flat boxes and cut six of them out of my main cube on each side.
+
+![](tardisPanel.png)
+
+Then I added my windows. This was done by first adding white panels to the top panels of my tardis. I then added thin stick-like cubes to my tardis at the correct positions.
+
+![](tardisWindow.png)
+
+Finally I made the top light by unioning a cylinder and a sphere.
+
+![](tardisLight.png)
+
+Then I decided to fade my Tardis into existence. I did this by calculating two pixel colors, one where the Tardis is there and one where the Tardis isn't. Then I linearly interpolated between the two as a function of time.
+This looked interesting, but I wanted to add some noise in to make it less uniform. After asking Jamie for help, I was able to add some noise into my Tardis materialization.
 
 Correctness Images
 ====================================================
@@ -26,22 +52,50 @@ Primitives with Direct Illumination and Shadows:
 
 Demonstration Images
 =======================================================
-[INSERT TARDIS PICS HERR]
+![](tardis1.png width= 400px )
+
+![](tardis3.png width= 200px)![](tardis4.png width= 200px)![](tardis2.png width= 200px)
+
+![](tardis.mp4)
 
 Questions
 ========================================
-1. I like all of my shader toys
-2.
-3.
+1. I chose [Thing Spawner](https://www.shadertoy.com/view/XdyGRw) by Tsarpf on shadertoy.
+    
+    ![](thingSpawn2.png)
+
+    - I chose this shadertoy because it made a visually pleasing scene using simple concepts.
+    - The spheres are blended with the ground plane. As time goes on, their heights increase and the blending stops once the spheres reach a certain height.
+
+2. My resources for this project were [the book of shaders](https://thebookofshaders.com/), [this](https://www.shadertoy.com/view/XllGW4) shadertoy example, and other students in the class.
+
+3. Glsl is different from C/C++ in the following ways:
+   - There is no recursion in GLSL.
+   - Instead of passing by reference, you specify parameters as inout.
+   - Initializing arrays follows a different structure.
+   - You are only able to call functions declared above your current function.
+   - Floats can't have an f at the end of their value.
 
 Self Review
 ==================================================
-++A ofcourse
+- I would give myself an A- on this project:
+    - Code Design: My code design could be optimized in certain places, but overall it has a good structure
+    - Code Correctness: My generates correct images
+    - Scene Visual Quality: I believe my scene turned asthetically pleasing
+    - Report Correctness: I believe my report is correct
 
 Skills
 ====================================================
-The art of copying code without pressing ctrl-c
-
+1. Software Engineering:
+    - How to code in GLSL
+    - The importance of file manegment.
+    - Reading 
+2. Math:
+    - How noise functions work
+3. Algorithmic:
+    - Ray Marching
+    - How to use a noise function
+    
 
 <!-- Markdeep: -->
 <style class="fallback">body{visibility:hidden;white-space:pre;font-family:monospace;}</style><script src="https://casual-effects.com/markdeep/latest/markdeep.min.js"></script><script>window.alreadyProcessedMarkdeep||(document.body.style.visibility="visible")</script>
