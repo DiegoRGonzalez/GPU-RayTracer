@@ -1,0 +1,64 @@
+﻿                  <meta charset="utf-8">
+                  **Report: Ray Marching**
+            Diego Gonzalez, drg4@williams.edu
+
+Scene Construction
+====================================================
+First I planned out what initial primitives I would need. These were mostly boxes and I drew that out on a whiteboard in my room.
+
+![](doc-files/tardisPlan.png)
+
+
+Once I did that I simply made those boxes at those coordinates. I had to adjust the height of my main tardis a little, but it was mostly alright.
+
+![](doc-files/tardisSimple.png)
+
+Once I had this, I started working on the panels on the edges. I made two functions, addFourSides and subFourSides that would Add/subtract my primitives from my tardis on all four sides. This allowed me to work only on one side. 
+
+I made flat boxes and cut six of them out of my main cube on each side.
+
+![](doc-files/tardisPanel.png)
+
+Then I added my windows. This was done by first adding white panels to the top panels of my tardis. I then added thin stick-like cubes to my tardis at the correct positions.
+
+![](doc-files/tardisWindow.png)
+
+Finally I made the top light by unioning a cylinder and a sphere.
+
+![](doc-files/tardisLight.png)
+
+Then I decided to fade my Tardis into existence. I did this by calculating two pixel colors, one where the Tardis is there and one where the Tardis isn't. Then I linearly interpolated between the two as a function of time.
+This looked interesting, but I wanted to add some noise in to make it less uniform. After asking Jamie for help, I was able to add some noise into my Tardis materialization.
+
+Correctness Images
+====================================================
+
+![Checkerboard](doc-files/checkerBoard.png width=150px border=1) ![Clouds](clouds.png width=150px border=1)  ![Eye ray directions](doc-files/eyeDirection.png width=150px border=1)
+
+Ray Marching:
+
+![Normals Visualized](doc-files/rayMarchNormal.png width=200px border=1)![Positions Visualized](doc-files/rayMarchPos.png width=200px border=1)
+
+Analytic Intersection:
+
+![Normals Visualized](doc-files/analyticNormal.png width=200px border=1)![Positions Visualized](doc-files/analyticPos.png width=200px border=1)
+
+
+Primitives with Direct Illumination and Shadows:
+![sphere](doc-files/sphereShadow.png  border=1)
+
+![taurus](doc-files/taurusShadow.png width=150px border=1) ![Cube](doc-files/cubeShadow.png width=150px border=1)  
+![Rounded Cube](doc-files/roundCubeShadow.png width=150px border=1) ![cylinder](doc-files/cylinderShadow.png width=150px border=1)  
+
+Demonstration Images
+=======================================================
+![](doc-files/tardis1.png width= 400px )
+
+![](doc-files/tardis3.png width= 200px)![](doc-files/tardis4.png width= 200px)![](doc-files/tardis2.png width= 200px)
+
+![](doc-files/tardis.mp4)
+
+
+
+<!-- Markdeep: -->
+<style class="fallback">body{visibility:hidden;white-space:pre;font-family:monospace;}</style><script src="https://casual-effects.com/markdeep/latest/markdeep.min.js"></script><script>window.alreadyProcessedMarkdeep||(document.body.style.visibility="visible")</script>
